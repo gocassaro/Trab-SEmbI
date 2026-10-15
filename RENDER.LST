@@ -1,0 +1,97 @@
+     1                                  segment data public
+     2                                      global desenha_cena
+     3                                      extern p1_x, p1_y, p1_estado
+     4                                      extern p2_x, p2_y, p2_estado
+     5                                  
+     6                                  segment code
+     7                                  desenha_cena:
+     8                                      ; 1. Limpa a tela pintando o fundo de preto
+     9                                      ; (Usamos a rolagem da BIOS, que é muito mais rápida que pintar pixel por pixel)
+    10 00000000 B80006                      MOV AX, 0600h       ; Função de rolar a janela (AL=0 limpa a tela)
+    11 00000003 B700                        MOV BH, 00h         ; Cor do fundo (Preto)
+    12 00000005 B90000                      MOV CX, 0000h       ; Canto superior esquerdo (X=0, Y=0)
+    13 00000008 BA4F1D                      MOV DX, 1D4Fh       ; Canto inferior direito (VGA 640x480)
+    14 0000000B CD10                        INT 10h
+    15                                  
+    16                                      ; 2. Desenha o Jogador 1 (Azul = 9)
+    17 0000000D 8B0E[0000]                  MOV CX, [p1_x]
+    18 00000011 8B16[0000]                  MOV DX, [p1_y]
+    19 00000015 B009                        MOV AL, 9
+    20 00000017 E80E00                      CALL desenha_quadrado
+    21                                      
+    22                                      ; 3. Desenha o Jogador 2 (Vermelho = 4)
+    23 0000001A 8B0E[0000]                  MOV CX, [p2_x]
+    24 0000001E 8B16[0000]                  MOV DX, [p2_y]
+    25 00000022 B004                        MOV AL, 4
+    26 00000024 E80100                      CALL desenha_quadrado
+    27                                      
+    28 00000027 C3                          RET
+    29                                  
+    30                                  ; Função que desenha um bloco 20x20
+    31                                  desenha_quadrado:
+    32 00000028 51                          PUSH CX
+    33 00000029 52                          PUSH DX
+    34 0000002A 53                          PUSH BX
+    35                                      
+    36 0000002B BB1400                      MOV BX, 20          ; Altura = 20 pixels
+    37                                  linha:
+    38 0000002E 51                          PUSH CX             ; Salva a coordenada X do início da linha
+    39 0000002F 53                          PUSH BX             ; Salva a altura restante
+    40                                      
+    41 00000030 BB1400                      MOV BX, 20          ; Largura = 20 pixels
+    42                                  coluna:
+    43 00000033 B40C                        MOV AH, 0Ch         ; Função da BIOS de desenhar pixel
+    44 00000035 53                          PUSH BX             ; Salva a largura restante
+    45 00000036 B700                        MOV BH, 0           ; Página de vídeo
+    46 00000038 CD10                        INT 10h             ; Pinta o pixel nas coordenadas CX, DX
+    47 0000003A 5B                          POP BX
+    48                                      
+    49 0000003B 41                          INC CX              ; Anda 1 pixel para a direita
+    50 0000003C 4B                          DEC BX
+    51 0000003D 75F4                        JNZ coluna          ; Repete até terminar a largura
+    52                                      
+    53 0000003F 5B                          POP BX              ; Recupera a altura restante
+    54 00000040 59                          POP CX              ; Volta a coordenada X para o início da coluna
+    55 00000041 42                          INC DX              ; Desce 1 pixel (próxima linha)
+    56 00000042 4B                          DEC BX
+    57 00000043 75E9                        JNZ linha           ; Repete até terminar a altura
+    58                                      
+    59 00000045 5B                          POP BX
+    60 00000046 5A                          POP DX
+    61 00000047 59                          POP CX
+    62 00000048 C3                          RET
+    63                                  
+    64                                  ; segment data public
+    65                                  ;     global desenha_cena
+    66                                  ;     extern p1_x, p1_y, p1_estado
+    67                                  ;     extern p2_x, p2_y, p2_estado
+    68                                  
+    69                                  ; segment code
+    70                                  ; desenha_cena:
+    71                                  ;     ; (Aqui você pode incluir uma macro para limpar a tela desenhando um retângulo preto de 640x480)
+    72                                      
+    73                                  ;     ; Desenha P1
+    74                                  ;     MOV CX, [p1_x]
+    75                                  ;     MOV DX, [p1_y]
+    76                                  ;     MOV AL, 9           ; Cor Azul para P1
+    77                                  ;     CALL desenha_lutador_placeholder
+    78                                      
+    79                                  ;     ; Desenha P2
+    80                                  ;     MOV CX, [p2_x]
+    81                                  ;     MOV DX, [p2_y]
+    82                                  ;     MOV AL, 4           ; Cor Vermelha para P2
+    83                                  ;     CALL desenha_lutador_placeholder
+    84                                      
+    85                                  ;     RET
+    86                                  
+    87                                  ; desenha_lutador_placeholder:
+    88                                  ;     ; CX = X, DX = Y, AL = Cor
+    89                                  ;     ; Essa função desenharia um retângulo base.
+    90                                  ;     ; Se p1_estado == 2 (Agachado), desenha retângulo menor.
+    91                                  ;     ; Se p1_estado == 4 (Soco), desenha um braço estendido (uma linha reta).
+    92                                      
+    93                                  ;     ; Exemplo de Ponto (Use plot_xy do lab05 na versão final[cite: 6])
+    94                                  ;     MOV AH, 0Ch
+    95                                  ;     MOV BH, 0
+    96                                  ;     INT 10h
+    97                                  ;     RET

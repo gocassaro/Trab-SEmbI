@@ -1,0 +1,60 @@
+     1                                  segment data public
+     2                                      global timer_init
+     3                                      global timer_restore
+     4                                      global tempo_round
+     5                                      global frame_flag
+     6                                  
+     7 00000000 0000                        old_int8_off dw 0
+     8 00000002 0000                        old_int8_cs  dw 0
+     9 00000004 00                          tique        db 0
+    10 00000005 B400                        tempo_round  dw 180      ; 3 minutos = 180 segundos
+    11 00000007 00                          frame_flag   db 0        ; Sincroniza a lógica principal
+    12                                  
+    13                                  segment code
+    14                                  timer_init:
+    15 00000000 FA                          CLI
+    16 00000001 31C0                        XOR AX, AX
+    17 00000003 8EC0                        MOV ES, AX
+    18 00000005 26A12000                    MOV AX, [ES:08h*4]
+    19 00000009 A3[0000]                    MOV [old_int8_off], AX
+    20 0000000C 26A12200                    MOV AX, [ES:08h*4+2]
+    21 00000010 A3[0200]                    MOV [old_int8_cs], AX
+    22 00000013 268C0E2200                  MOV [ES:08h*4+2], CS
+    23 00000018 26C7062000[3600]            MOV WORD [ES:08h*4], int8_handler
+    24 0000001F FB                          STI
+    25 00000020 C3                          RET
+    26                                  
+    27                                  timer_restore:
+    28 00000021 FA                          CLI
+    29 00000022 31C0                        XOR AX, AX
+    30 00000024 8EC0                        MOV ES, AX
+    31 00000026 A1[0200]                    MOV AX, [old_int8_cs]
+    32 00000029 26A32200                    MOV [ES:08h*4+2], AX
+    33 0000002D A1[0000]                    MOV AX, [old_int8_off]
+    34 00000030 26A32000                    MOV [ES:08h*4], AX
+    35 00000034 FB                          STI
+    36 00000035 C3                          RET
+    37                                  
+    38                                  int8_handler:
+    39 00000036 50                          PUSH AX
+    40 00000037 1E                          PUSH DS
+    41 00000038 B8[0000]                    MOV AX, data
+    42 0000003B 8ED8                        MOV DS, AX
+    43                                  
+    44 0000003D C606[0700]01                MOV byte [frame_flag], 1 ; Avisa o loop principal para atualizar o jogo
+    45                                      
+    46 00000042 FE06[0400]                  INC byte [tique]
+    47 00000046 803E[0400]12                CMP byte [tique], 18     ; ~1 segundo
+    48 0000004B 7211                        JB fim_int8
+    49 0000004D C606[0400]00                MOV byte [tique], 0
+    50                                      
+    51 00000052 813E[0500]0000              CMP word [tempo_round], 0
+    52 00000058 7404                        JE fim_int8
+    53 0000005A FF0E[0500]                  DEC word [tempo_round]   ; Decrementa o tempo do round
+    54                                  
+    55                                  fim_int8:
+    56 0000005E B020                        MOV AL, 20h
+    57 00000060 E620                        OUT 20h, AL
+    58 00000062 1F                          POP DS
+    59 00000063 58                          POP AX
+    60 00000064 CF                          IRET
