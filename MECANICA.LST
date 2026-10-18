@@ -1,147 +1,158 @@
      1                                  segment data public
      2                                      global p1_x, p1_y, p1_hp, p1_estado
      3                                      global p2_x, p2_y, p2_hp, p2_estado
-     4                                      global atualiza_mecanica
-     5                                      extern key_map
-     6                                      
-     7 00000000 6400                        p1_x      dw 100
-     8 00000002 2C01                        p1_y      dw 300
-     9 00000004 0A                          p1_hp     db 10
-    10 00000005 00                          p1_estado db 0
-    11 00000006 00                          p1_timer  db 0       ; Timer para duração do soco/chute
-    12                                  
-    13 00000007 F401                        p2_x      dw 500
-    14 00000009 2C01                        p2_y      dw 300
-    15 0000000B 0A                          p2_hp     db 10
-    16 0000000C 00                          p2_estado db 0
-    17 0000000D 00                          p2_timer  db 0
-    18                                  
-    19                                  segment code
-    20                                  atualiza_mecanica:
-    21                                      ; === JOGADOR 1 (W=11h, A=1Eh, S=1Fh, D=20h, (Chute)R=13h, (Soco)T=14h) ===
-    22 00000000 C606[0500]00                MOV byte [p1_estado], 0  ; Default: Parado
-    23                                      
-    24                                      ; Defesa/Esquiva: Agachar
-    25 00000005 803E[1F00]01                CMP byte [key_map + 1Fh], 1
-    26 0000000A 7508                        JNE check_p1_jump
-    27 0000000C C606[0500]02                MOV byte [p1_estado], 2
-    28 00000011 E93300                      JMP check_p1_attacks
-    29                                      
-    30                                  check_p1_jump:
-    31                                      ; Defesa/Esquiva: Pular
-    32 00000014 803E[1100]01                CMP byte [key_map + 11h], 1
-    33 00000019 7508                        JNE check_p1_move
-    34 0000001B C606[0500]03                MOV byte [p1_estado], 3
-    35 00000020 E92400                      JMP check_p1_attacks
-    36                                  
-    37                                  check_p1_move:
-    38 00000023 803E[1E00]01                CMP byte [key_map + 1Eh], 1 ; Esquerda
-    39 00000028 750B                        JNE check_p1_right
-    40 0000002A 812E[0000]0500              SUB word [p1_x], 5
-    41 00000030 C606[0500]01                MOV byte [p1_estado], 1
-    42                                  
-    43                                  check_p1_right:
-    44 00000035 803E[2000]01                CMP byte [key_map + 20h], 1 ; Direita
-    45 0000003A 750B                        JNE check_p1_attacks
-    46 0000003C 8106[0000]0500              ADD word [p1_x], 5
-    47 00000042 C606[0500]01                MOV byte [p1_estado], 1
-    48                                  
-    49                                  check_p1_attacks:
-    50                                  check_punch_p1:
-    51                                      ; Soco (T=14h)
-    52 00000047 803E[1400]01                CMP byte [key_map + 14h], 1
-    53 0000004C 7508                        JNE check_kick_p1
-    54 0000004E C606[0500]04                MOV byte [p1_estado], 4
-    55 00000053 E86600                      CALL verifica_colisao_p1
-    56                                  check_kick_p1:
-    57                                      ; chute (R=13h)
-    58 00000056 803E[1300]01                CMP byte [key_map + 13h], 1
-    59 0000005B 7508                        JNE check_p2
-    60 0000005D C606[0500]04                MOV byte [p1_estado], 4
-    61 00000062 E85700                      CALL verifica_colisao_p1
-    62                                  
-    63                                  ; Lógica espelhada para P2 (Setas Cima=48h, Esquerda=4Bh, Baixo=50h, Direita=4Dh, (Chute)N=31h, (Soco)M=32h)
-    64                                  check_p2:
-    65 00000065 C606[0C00]00                MOV byte [p2_estado], 0     ; Default: Parado
-    66                                      
-    67                                      ; Defesa/Esquiva: Agachar
-    68 0000006A 803E[5000]01                CMP byte [key_map + 50h], 1
-    69 0000006F 7508                        JNE check_p2_jump
-    70 00000071 C606[0C00]02                MOV byte [p2_estado], 2
-    71 00000076 E93300                      JMP check_p2_attacks
-    72                                      
-    73                                  check_p2_jump:
-    74                                      ; Defesa/Esquiva: Pular
-    75 00000079 803E[4800]01                CMP byte [key_map + 48h], 1
-    76 0000007E 7508                        JNE check_p2_move
-    77 00000080 C606[0C00]03                MOV byte [p2_estado], 3
-    78 00000085 E92400                      JMP check_p2_attacks
-    79                                  
-    80                                  check_p2_move:
-    81 00000088 803E[4B00]01                CMP byte [key_map + 4Bh], 1 ; Seta Esquerda
-    82 0000008D 750B                        JNE check_p2_right
-    83 0000008F 812E[0700]0500              SUB word [p2_x], 5
-    84 00000095 C606[0C00]01                MOV byte [p2_estado], 1
-    85                                  check_p2_right:
-    86 0000009A 803E[4D00]01                CMP byte [key_map + 4Dh], 1 ; Seta Direita
-    87 0000009F 750B                        JNE check_p2_attacks
-    88 000000A1 8106[0700]0500              ADD word [p2_x], 5
-    89 000000A7 C606[0C00]01                MOV byte [p2_estado], 1
-    90                                  
-    91                                  check_p2_attacks:
-    92                                      ; Soco do P2 (Tecla M = 32h)
-    93 000000AC 803E[3200]01                CMP byte [key_map + 32h], 1
-    94 000000B1 7508                        JNE fim_mecanica
-    95 000000B3 C606[0C00]04                MOV byte [p2_estado], 4
-    96 000000B8 E82B00                      CALL verifica_colisao_p2
-    97                                  
-    98                                  fim_mecanica:
-    99 000000BB C3                          RET
+     4                                      global p1_x_antigo, p1_y_antigo
+     5                                      global p2_x_antigo, p2_y_antigo
+     6                                      global atualiza_mecanica
+     7                                      extern key_map
+     8                                      
+     9                                      ; === ESTADOS DOS PLAYERS:  PARADO(0), ANDANDO ESQUERDA(1), ANDANDO DIREITA(1), AGACHANDO(2), 
+    10                                      ;                           PULANDO(3), ATACANDO SOCO(4), ATACANDO CHUTE(5);  
+    11                                  
+    12 00000000 6400                        p1_x      dw 100
+    13 00000002 2C01                        p1_y      dw 300
+    14 00000004 6400                        p1_x_antigo dw 100
+    15 00000006 2C01                        p1_y_antigo dw 300
+    16 00000008 0A                          p1_hp     db 10
+    17 00000009 00                          p1_estado db 0
+    18 0000000A 00                          p1_timer  db 0       ; Timer para duração do soco/chute
+    19                                  
+    20 0000000B F401                        p2_x      dw 500
+    21 0000000D 2C01                        p2_y      dw 300
+    22 0000000F F401                        p2_x_antigo dw 500
+    23 00000011 2C01                        p2_y_antigo dw 300
+    24 00000013 0A                          p2_hp     db 10
+    25 00000014 00                          p2_estado db 0
+    26 00000015 00                          p2_timer  db 0
+    27                                  
+    28                                  segment code
+    29                                  atualiza_mecanica:
+    30                                      ; === JOGADOR 1 (W=11h, A=1Eh, S=1Fh, D=20h, (Chute)R=13h, (Soco)T=14h) ===
+    31 00000000 C606[0900]00                MOV byte [p1_estado], 0  ; Default: Parado
+    32                                      
+    33                                      ; Defesa/Esquiva: Agachar
+    34 00000005 803E[1F00]01                CMP byte [key_map + 1Fh], 1
+    35 0000000A 7508                        JNE check_p1_jump
+    36 0000000C C606[0900]02                MOV byte [p1_estado], 2
+    37 00000011 E93300                      JMP check_p1_attacks
+    38                                      
+    39                                  check_p1_jump:
+    40                                      ; Defesa/Esquiva: Pular
+    41 00000014 803E[1100]01                CMP byte [key_map + 11h], 1
+    42 00000019 7508                        JNE check_p1_left
+    43 0000001B C606[0900]03                MOV byte [p1_estado], 3
+    44 00000020 E92400                      JMP check_p1_attacks
+    45                                  
+    46                                  check_p1_left:
+    47 00000023 803E[1E00]01                CMP byte [key_map + 1Eh], 1 ; Esquerda
+    48 00000028 750B                        JNE check_p1_right
+    49 0000002A 812E[0000]0500              SUB word [p1_x], 5
+    50 00000030 C606[0900]01                MOV byte [p1_estado], 1
+    51                                  
+    52                                  check_p1_right:
+    53 00000035 803E[2000]01                CMP byte [key_map + 20h], 1 ; Direita
+    54 0000003A 750B                        JNE check_p1_attacks
+    55 0000003C 8106[0000]0500              ADD word [p1_x], 5
+    56 00000042 C606[0900]01                MOV byte [p1_estado], 1
+    57                                  
+    58                                  check_p1_attacks:               ; verificar os ataques
+    59                                  check_punch_p1:                 ; verifica o soco de P1
+    60                                      ; Soco (T=14h)
+    61 00000047 803E[1400]01                CMP byte [key_map + 14h], 1 ; compara a tecla de soco com 1
+    62 0000004C 750B                        JNE check_kick_p1           ; se o soco nao foi dado pula para a verificacao do chute
+    63 0000004E C606[0900]04                MOV byte [p1_estado], 4     ; caso contrario, atribui o estado de ATACANDO SOCO a P1
+    64 00000053 E86900                      CALL verifica_colisao_soco_p1    ; pula para a verificacao de acerto do soco
+    65 00000056 E80F00                      CALL check_p2               ; apos isso, pula para a verificacao de P2
+    66                                  check_kick_p1:                  ; verifica o chute de P1
+    67                                      ; chute (R=13h)
+    68 00000059 803E[1300]01                CMP byte [key_map + 13h], 1 ; compara a tecla de chute com 1
+    69 0000005E 7508                        JNE check_p2                ; se o chute nao foi dado, pula para a verificacao de p2
+    70 00000060 C606[0900]04                MOV byte [p1_estado], 4     ; caso o contrario, atribui o estado de ATACANDO CHUTE a P1
+    71 00000065 E85700                      CALL verifica_colisao_p1    ; verifica se o chute acertou
+    72                                  
+    73                                  ; Lógica espelhada para P2 (Setas Cima=48h, Esquerda=4Bh, Baixo=50h, Direita=4Dh, (Chute)N=31h, (Soco)M=32h)
+    74                                  check_p2:
+    75 00000068 C606[1400]00                MOV byte [p2_estado], 0     ; Default: Parado
+    76                                      
+    77                                      ; Defesa/Esquiva: Agachar
+    78 0000006D 803E[5000]01                CMP byte [key_map + 50h], 1
+    79 00000072 7508                        JNE check_p2_jump
+    80 00000074 C606[1400]02                MOV byte [p2_estado], 2
+    81 00000079 E93300                      JMP check_p2_attacks
+    82                                      
+    83                                  check_p2_jump:
+    84                                      ; Defesa/Esquiva: Pular
+    85 0000007C 803E[4800]01                CMP byte [key_map + 48h], 1
+    86 00000081 7508                        JNE check_p2_move
+    87 00000083 C606[1400]03                MOV byte [p2_estado], 3
+    88 00000088 E92400                      JMP check_p2_attacks
+    89                                  
+    90                                  check_p2_move:
+    91 0000008B 803E[4B00]01                CMP byte [key_map + 4Bh], 1 ; Seta Esquerda
+    92 00000090 750B                        JNE check_p2_right
+    93 00000092 812E[0B00]0500              SUB word [p2_x], 5
+    94 00000098 C606[1400]01                MOV byte [p2_estado], 1
+    95                                  check_p2_right:
+    96 0000009D 803E[4D00]01                CMP byte [key_map + 4Dh], 1 ; Seta Direita
+    97 000000A2 750B                        JNE check_p2_attacks
+    98 000000A4 8106[0B00]0500              ADD word [p2_x], 5
+    99 000000AA C606[1400]01                MOV byte [p2_estado], 1
    100                                  
-   101                                  ; === FUNÇÃO DE COLISÃO DO JOGADOR 1 ===
-   102                                  verifica_colisao_p1:
-   103                                  verifica_colisao_soco_p1:
-   104 000000BC 803E[0C00]02                CMP byte [p2_estado], 2 ; se P2 estiver agachado, ele se defende do soco
-   105 000000C1 7422                        JE sem_dano_p1
-   106                                  verifica_colisao_chute_p1:
-   107 000000C3 803E[0C00]03                CMP byte [p2_estado], 3 ; se P2 estiver pulando, ele se defende do chute
-   108 000000C8 741B                        JE sem_dano_p1
-   109                                  
-   110                                  calc_dist_p1: 
-   111                                      ; Calcula distância absoluta |P1_X - P2_X|
-   112 000000CA A1[0000]                    MOV AX, [p1_x]
-   113 000000CD 2B06[0700]                  SUB AX, [p2_x]
-   114 000000D1 7902                        JNS check_dist_p1       ; Se o resultado não for negativo (Jump if Not Sign), pula
-   115 000000D3 F7D8                        NEG AX                  ; Inverte o sinal para virar positivo
-   116                                  check_dist_p1:
-   117 000000D5 3D3C00                      CMP AX, 60              ; Distância máxima do soco
-   118 000000D8 7F0B                        JG sem_dano_p1
-   119                                      
-   120 000000DA 803E[0B00]00                CMP byte [p2_hp], 0     ; Verifica se a vida já está zerada
-   121 000000DF 7404                        JE sem_dano_p1          ; Se sim, não subtrai
-   122 000000E1 FE0E[0B00]                  DEC byte [p2_hp]        ; Dano aplicado
-   123                                  sem_dano_p1:
-   124 000000E5 C3                          RET
-   125                                  
-   126                                  ; === FUNÇÃO DE COLISÃO DO JOGADOR 2 ===
-   127                                  verifica_colisao_p2:
-   128                                      ; Se P1 estiver agachado (2) ou pulando (3), ele se defende
-   129 000000E6 803E[0500]02                CMP byte [p1_estado], 2
-   130 000000EB 7422                        JE sem_dano_p2
-   131 000000ED 803E[0500]03                CMP byte [p1_estado], 3
-   132 000000F2 741B                        JE sem_dano_p2
-   133                                      
-   134                                      ; Calcula distância absoluta |P2_X - P1_X|
-   135 000000F4 A1[0700]                    MOV AX, [p2_x]
-   136 000000F7 2B06[0000]                  SUB AX, [p1_x]
-   137 000000FB 7902                        JNS check_dist_p2
-   138 000000FD F7D8                        NEG AX
-   139                                  check_dist_p2:
-   140 000000FF 3D3C00                      CMP AX, 60              ; Distância máxima do soco
-   141 00000102 7F0B                        JG sem_dano_p2
-   142                                      
-   143 00000104 803E[0400]00                CMP byte [p1_hp], 0     ; Verifica se a vida já está zerada
-   144 00000109 7404                        JE sem_dano_p2          ; Se sim, não subtrai
-   145 0000010B FE0E[0400]                  DEC byte [p1_hp]        ; Dano aplicado
-   146                                  sem_dano_p2:
-   147 0000010F C3                          RET
+   101                                  check_p2_attacks:
+   102                                      ; Soco do P2 (Tecla M = 32h)
+   103 000000AF 803E[3200]01                CMP byte [key_map + 32h], 1
+   104 000000B4 7508                        JNE fim_mecanica
+   105 000000B6 C606[1400]04                MOV byte [p2_estado], 4
+   106 000000BB E82E00                      CALL verifica_colisao_p2
+   107                                  
+   108                                  fim_mecanica:
+   109 000000BE C3                          RET
+   110                                  
+   111                                  ; === FUNÇÃO DE COLISÃO DO JOGADOR 1 ===
+   112                                  verifica_colisao_p1:
+   113                                  verifica_colisao_soco_p1:
+   114 000000BF 803E[1400]02                CMP byte [p2_estado], 2 ; se P2 estiver agachado, ele se defende do soco
+   115 000000C4 7425                        JE sem_dano_p1          ; assume que p1 nao infligiu dano
+   116 000000C6 E80700                      CALL calc_dist_p1       ; caso P2 nao esteja agachado, verifica a distancia
+   117                                  verifica_colisao_chute_p1:  ; 
+   118 000000C9 803E[1400]03                CMP byte [p2_estado], 3 ; se P2 estiver pulando, ele se defende do chute
+   119 000000CE 741B                        JE sem_dano_p1
+   120                                  
+   121                                  calc_dist_p1: 
+   122                                      ; Calcula distância absoluta |P1_X - P2_X|
+   123 000000D0 A1[0000]                    MOV AX, [p1_x]
+   124 000000D3 2B06[0B00]                  SUB AX, [p2_x]
+   125 000000D7 7902                        JNS check_dist_p1       ; Se o resultado não for negativo (Jump if Not Sign), pula
+   126 000000D9 F7D8                        NEG AX                  ; Inverte o sinal para virar positivo
+   127                                  check_dist_p1:
+   128 000000DB 3D3C00                      CMP AX, 60              ; Distância máxima do soco
+   129 000000DE 7F0B                        JG sem_dano_p1
+   130                                      
+   131 000000E0 803E[1300]00                CMP byte [p2_hp], 0     ; Verifica se a vida já está zerada
+   132 000000E5 7404                        JE sem_dano_p1          ; Se sim, não subtrai
+   133 000000E7 FE0E[1300]                  DEC byte [p2_hp]        ; Dano aplicado
+   134                                  sem_dano_p1:
+   135 000000EB C3                          RET
+   136                                  
+   137                                  ; === FUNÇÃO DE COLISÃO DO JOGADOR 2 ===
+   138                                  verifica_colisao_p2:
+   139                                      ; Se P1 estiver agachado (2) ou pulando (3), ele se defende
+   140 000000EC 803E[0900]02                CMP byte [p1_estado], 2
+   141 000000F1 7422                        JE sem_dano_p2
+   142 000000F3 803E[0900]03                CMP byte [p1_estado], 3
+   143 000000F8 741B                        JE sem_dano_p2
+   144                                      
+   145                                      ; Calcula distância absoluta |P2_X - P1_X|
+   146 000000FA A1[0B00]                    MOV AX, [p2_x]
+   147 000000FD 2B06[0000]                  SUB AX, [p1_x]
+   148 00000101 7902                        JNS check_dist_p2
+   149 00000103 F7D8                        NEG AX
+   150                                  check_dist_p2:
+   151 00000105 3D3C00                      CMP AX, 60              ; Distância máxima do soco
+   152 00000108 7F0B                        JG sem_dano_p2
+   153                                      
+   154 0000010A 803E[0800]00                CMP byte [p1_hp], 0     ; Verifica se a vida já está zerada
+   155 0000010F 7404                        JE sem_dano_p2          ; Se sim, não subtrai
+   156 00000111 FE0E[0800]                  DEC byte [p1_hp]        ; Dano aplicado
+   157                                  sem_dano_p2:
+   158 00000115 C3                          RET

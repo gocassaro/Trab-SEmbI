@@ -1,21 +1,26 @@
 segment data public
     global p1_x, p1_y, p1_hp, p1_estado
     global p2_x, p2_y, p2_hp, p2_estado
+    global p1_x_antigo, p1_y_antigo
+    global p2_x_antigo, p2_y_antigo
     global atualiza_mecanica
     extern key_map
-    extern update_visual
     
     ; === ESTADOS DOS PLAYERS:  PARADO(0), ANDANDO ESQUERDA(1), ANDANDO DIREITA(1), AGACHANDO(2), 
     ;                           PULANDO(3), ATACANDO SOCO(4), ATACANDO CHUTE(5);  
 
     p1_x      dw 100
     p1_y      dw 300
+    p1_x_antigo dw 100
+    p1_y_antigo dw 300
     p1_hp     db 10
     p1_estado db 0
     p1_timer  db 0       ; Timer para duração do soco/chute
 
     p2_x      dw 500
     p2_y      dw 300
+    p2_x_antigo dw 500
+    p2_y_antigo dw 300
     p2_hp     db 10
     p2_estado db 0
     p2_timer  db 0
