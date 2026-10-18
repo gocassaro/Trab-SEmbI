@@ -4,7 +4,21 @@ segment data public
     extern p2_x, p2_y, p2_estado, p2_hp
 
 segment code
+
 desenha_cena:
+    ; ==========================================
+    ; AGUARDA O VSYNC (Sincronização Vertical)
+    ; ==========================================
+    MOV DX, 03DAh               ; Porta de status do monitor VGA
+espera_vblank_fim:
+    IN AL, DX
+    TEST AL, 8                  ; Testa o bit 3 (Vertical Retrace)
+    JNZ espera_vblank_fim       ; Espera terminar o VSync anterior (se estiver ocorrendo)
+espera_vblank_inicio:
+    IN AL, DX
+    TEST AL, 8
+    JZ espera_vblank_inicio     ; Espera o monitor iniciar o período de VSync
+    
     ; 1. Limpa a tela (preenche com preto)
     MOV AX, 0600h
     MOV BH, 00h

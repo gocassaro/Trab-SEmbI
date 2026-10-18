@@ -1,6 +1,8 @@
 segment data public
     extern teclado_init, teclado_restore, timer_init, timer_restore
     extern frame_flag, atualiza_mecanica, desenha_cena, key_map
+    global update_visual
+    update_visual db 1      ; Flag que indica se houve mudança visual
     modo_anterior db 0
     estado_jogo   db 0  ; 0=Menu, 1=Jogando, 2=Pause, 3=Game Over
 
@@ -21,9 +23,24 @@ segment code
 
 game_loop:
     ; Pause (Tecla P = 19h)[cite: 5]
-    CMP byte [key_map + 19h], 1
-    JNE verifica_quit
-    ; Alterna estado de pause aqui...
+    CMP byte [key_map + 10h], 1 ; Verifica tecla Q (Sair)
+    JE sair_jogo
+
+    CMP byte [frame_flag], 1    ; Verifica se o tick de 55ms passou
+    JNE game_loop
+    MOV byte [frame_flag], 0    ; Reseta a flag do timer
+
+    CALL atualiza_mecanica
+
+    ; --- INÍCIO DO LIMITADOR ---
+    CMP byte [update_visual], 1 ; Verifica se a mecânica alterou algo
+    JNE game_loop               ; Se não mudou, pula o desenho e espera próximo frame
+    
+    CALL desenha_cena           ; Se mudou, redesenha
+    MOV byte [update_visual], 0 ; Abaixa a flag de desenho após repintar
+    ; --- FIM DO LIMITADOR ---
+    
+    JMP game_loop
     
 verifica_quit:
     ; Quit (Tecla Q = 10h)[cite: 4]
