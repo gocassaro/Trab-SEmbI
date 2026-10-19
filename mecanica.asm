@@ -62,7 +62,7 @@ check_punch_p1:                 ; verifica o soco de P1
     JNE check_kick_p1           ; se o soco nao foi dado pula para a verificacao do chute
     MOV byte [p1_estado], 4     ; caso contrario, atribui o estado de ATACANDO SOCO a P1
     CALL verifica_colisao_soco_p1    ; pula para a verificacao de acerto do soco
-    CALL check_p2               ; apos isso, pula para a verificacao de P2
+    JMP check_p2               ; apos isso, pula para a verificacao de P2
 check_kick_p1:                  ; verifica o chute de P1
     ; chute (R=13h)
     CMP byte [key_map + 13h], 1 ; compara a tecla de chute com 1
@@ -105,13 +105,13 @@ check_punch_p2:                 ; verifica o soco de P2
     JNE check_kick_p2           ; se o soco nao foi dado pula para a verificacao do chute
     MOV byte [p2_estado], 4     ; caso contrario, atribui o estado de ATACANDO SOCO a P2
     CALL verifica_colisao_soco_p2    ; pula para a verificacao de acerto do soco
-    CALL fim_mecanica           ; apos isso, pula para a verificacao de P2
+    JMP fim_mecanica           ; apos isso, pula para a verificacao de P2
 check_kick_p2:                  ; verifica o chute de P1
     ; chute (N=31h)
     CMP byte [key_map + 31h], 1 ; compara a tecla de chute com 1
     JNE fim_mecanica            ; se o chute nao foi dado, pula para a o fim da mecanica
     MOV byte [p2_estado], 4     ; caso o contrario, atribui o estado de ATACANDO CHUTE a P1
-    CALL verifica_colisao_p2    ; verifica se o chute acertou
+    CALL verifica_colisao_chute_p2    ; verifica se o chute acertou
 
 fim_mecanica:
     RET
@@ -122,6 +122,7 @@ verifica_colisao_soco_p1:
     CMP byte [p2_estado], 2 ; se P2 estiver agachado, ele se defende do soco
     JE sem_dano_p1          ; assume que p1 nao infligiu dano
     CALL calc_dist_p1       ; caso P2 nao esteja agachado, verifica a distancia
+    RET
 verifica_colisao_chute_p1:  ; 
     CMP byte [p2_estado], 3 ; se P2 estiver pulando, ele se defende do chute
     JE sem_dano_p1
@@ -148,6 +149,7 @@ verifica_colisao_soco_p2:
     CMP byte [p1_estado], 2 ; se P1 estiver agachado, ele se defende do soco
     JE sem_dano_p2          ; assume que p2 nao infligiu dano
     CALL calc_dist_p2       ; caso P1 nao esteja agachado, verifica a distancia
+    RET
 verifica_colisao_chute_p2:  ; 
     CMP byte [p1_estado], 3 ; se P1 estiver pulando, ele se defende do chute
     JE sem_dano_p2
