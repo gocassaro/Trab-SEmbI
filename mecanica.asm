@@ -31,10 +31,10 @@ atualiza_mecanica:
     MOV byte [p1_estado], 0  ; Default: Parado
     
     ; Defesa/Esquiva: Agachar
-    CMP byte [key_map + 1Fh], 1
-    JNE check_p1_jump
-    MOV byte [p1_estado], 2
-    JMP check_p1_attacks
+    CMP byte [key_map + 1Fh], 1 ; verifica se a tecla de agachar foi pressionada
+    JNE check_p1_jump           ; caso nao tenha sido salta para a proxima verificacao
+    MOV byte [p1_estado], 2     ; caso contrario, atribui o estado de agachado ao P1
+    JMP check_p1_attacks        ; 
     
 check_p1_jump:
     ; Defesa/Esquiva: Pular
@@ -68,7 +68,7 @@ check_kick_p1:                  ; verifica o chute de P1
     CMP byte [key_map + 13h], 1 ; compara a tecla de chute com 1
     JNE check_p2                ; se o chute nao foi dado, pula para a verificacao de p2
     MOV byte [p1_estado], 4     ; caso o contrario, atribui o estado de ATACANDO CHUTE a P1
-    CALL verifica_colisao_p1    ; verifica se o chute acertou
+    CALL verifica_colisao_chute_p1    ; verifica se o chute acertou
 
 ; Lógica espelhada para P2 (Setas Cima=48h, Esquerda=4Bh, Baixo=50h, Direita=4Dh, (Chute)N=31h, (Soco)M=32h)
 check_p2:
@@ -98,12 +98,20 @@ check_p2_right:
     ADD word [p2_x], 5
     MOV byte [p2_estado], 1
 
-check_p2_attacks:
-    ; Soco do P2 (Tecla M = 32h)
-    CMP byte [key_map + 32h], 1
-    JNE fim_mecanica
-    MOV byte [p2_estado], 4
-    CALL verifica_colisao_p2
+check_p2_attacks:               ; verificar os ataques
+check_punch_p2:                 ; verifica o soco de P2
+    ; Soco (M=32h)
+    CMP byte [key_map + 32h], 1 ; compara a tecla de soco com 1
+    JNE check_kick_p2           ; se o soco nao foi dado pula para a verificacao do chute
+    MOV byte [p2_estado], 4     ; caso contrario, atribui o estado de ATACANDO SOCO a P2
+    CALL verifica_colisao_soco_p2    ; pula para a verificacao de acerto do soco
+    CALL fim_mecanica           ; apos isso, pula para a verificacao de P2
+check_kick_p2:                  ; verifica o chute de P1
+    ; chute (N=31h)
+    CMP byte [key_map + 31h], 1 ; compara a tecla de chute com 1
+    JNE fim_mecanica            ; se o chute nao foi dado, pula para a o fim da mecanica
+    MOV byte [p2_estado], 4     ; caso o contrario, atribui o estado de ATACANDO CHUTE a P1
+    CALL verifica_colisao_p2    ; verifica se o chute acertou
 
 fim_mecanica:
     RET
@@ -136,12 +144,15 @@ sem_dano_p1:
 
 ; === FUNÇÃO DE COLISÃO DO JOGADOR 2 ===
 verifica_colisao_p2:
-    ; Se P1 estiver agachado (2) ou pulando (3), ele se defende
-    CMP byte [p1_estado], 2
-    JE sem_dano_p2
-    CMP byte [p1_estado], 3
+verifica_colisao_soco_p2:
+    CMP byte [p1_estado], 2 ; se P1 estiver agachado, ele se defende do soco
+    JE sem_dano_p2          ; assume que p2 nao infligiu dano
+    CALL calc_dist_p2       ; caso P1 nao esteja agachado, verifica a distancia
+verifica_colisao_chute_p2:  ; 
+    CMP byte [p1_estado], 3 ; se P1 estiver pulando, ele se defende do chute
     JE sem_dano_p2
     
+calc_dist_p2:
     ; Calcula distância absoluta |P2_X - P1_X|
     MOV AX, [p2_x]
     SUB AX, [p1_x]
