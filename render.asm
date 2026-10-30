@@ -1,8 +1,8 @@
 segment data public
     global desenha_cena
     global desenha_fundo
-    extern p1_x, p1_y, p1_hp, p1_x_antigo, p1_y_antigo
-    extern p2_x, p2_y, p2_hp, p2_x_antigo, p2_y_antigo
+    extern p1_x, p1_y, p1_hp, p1_x_antigo, p1_y_antigo, p1_estado
+    extern p2_x, p2_y, p2_hp, p2_x_antigo, p2_y_antigo, p2_estado
 
 segment code
 
@@ -39,9 +39,9 @@ desenha_fundo:
 ; DESENHA CENA: EXECUTADO A CADA FRAME (18.2 Hz)
 ; =========================================================
 desenha_cena:
-    
-    ; --- 1. APAGA OS RASTROS (Dirty Rectangles) ---
-    ; Pinta um quadrado PRETO (cor 0) exatamente na posição ANTIGA do P1
+    ; --- 1. APAGA OS RASTROS ---
+    ; Apagar sempre vai varrer o quadrado de 20x20 para garantir que 
+    ; nada do frame anterior sobre na tela, mesmo se voltar de um pulo.
     MOV CX, [p1_x_antigo]
     MOV DX, [p1_y_antigo]
     MOV SI, 20
@@ -49,7 +49,6 @@ desenha_cena:
     MOV AL, 0           
     CALL desenha_retangulo
 
-    ; Pinta um quadrado PRETO na posição ANTIGA do P2
     MOV CX, [p2_x_antigo]
     MOV DX, [p2_y_antigo]
     MOV SI, 20
@@ -58,25 +57,31 @@ desenha_cena:
     CALL desenha_retangulo
 
     ; --- 2. DESENHA OS LUTADORES NAS POSIÇÕES NOVAS ---
-    ; Desenha P1 na posição atual
+    ; P1
     MOV CX, [p1_x]
     MOV DX, [p1_y]
     MOV SI, 20
-    MOV DI, 20
-    MOV AL, 9           ; Cor: 9 (Azul)
+    MOV DI, 20          ; Altura padrão
+    CMP byte [p1_estado], 2 ; Checa se P1 está agachado
+    JNE desenha_p1_cor
+    MOV DI, 10          ; Se sim, altura vira 10
+desenha_p1_cor:
+    MOV AL, 9           ; Azul
     CALL desenha_retangulo
     
-    ; Desenha P2 na posição atual
+    ; P2
     MOV CX, [p2_x]
     MOV DX, [p2_y]
     MOV SI, 20
-    MOV DI, 20
-    MOV AL, 4           ; Cor: 4 (Vermelho)
+    MOV DI, 20          ; Altura padrão
+    CMP byte [p2_estado], 2 ; Checa se P2 está agachado
+    JNE desenha_p2_cor
+    MOV DI, 10          ; Se sim, altura vira 10
+desenha_p2_cor:
+    MOV AL, 4           ; Vermelho
     CALL desenha_retangulo
 
-    ; --- 3. ATUALIZA AS BARRAS DE VIDA DINAMICAMENTE ---
-    
-    ; > Repinta todo o Fundo Cinza do P1
+    ; --- 3. ATUALIZA AS BARRAS DE VIDA (igual ao seu código anterior) ---
     MOV CX, 20
     MOV DX, 20
     MOV SI, 200
@@ -84,25 +89,20 @@ desenha_cena:
     MOV AL, 8           
     CALL desenha_retangulo
     
-    ; > Desenha a Energia Amarela do P1 por cima
     CMP byte [p1_hp], 0
-    JE atualiza_hp2     ; Se a vida for 0, pula e deixa só o cinza
-    
+    JE atualiza_hp2     
     MOV AL, [p1_hp]
-    XOR AH, AH          ; Limpa AH (AX agora tem o valor de HP)
+    XOR AH, AH          
     MOV BX, 20
-    MUL BX              ; Multiplica AX por BX (Resultado vai para DX:AX)
-    MOV SI, AX          ; SI recebe a nova largura calculada (HP * 20)
-    
-    ; Como a instrução MUL afeta o DX, precisamos restaurar as coordenadas Y e Altura
-    MOV CX, 20          ; X
-    MOV DX, 20          ; Y
-    MOV DI, 15          ; Altura
-    MOV AL, 14          ; Cor: 14 (Amarelo)
+    MUL BX              
+    MOV SI, AX          
+    MOV CX, 20          
+    MOV DX, 20          
+    MOV DI, 15          
+    MOV AL, 14          
     CALL desenha_retangulo
 
 atualiza_hp2:
-    ; > Repinta todo o Fundo Cinza do P2
     MOV CX, 420
     MOV DX, 20
     MOV SI, 200
@@ -110,23 +110,18 @@ atualiza_hp2:
     MOV AL, 8           
     CALL desenha_retangulo
 
-    ; > Desenha a Energia Amarela do P2 por cima
     CMP byte [p2_hp], 0
-    JE fim_desenho      ; Se a vida for 0, termina a renderização
-    
+    JE fim_desenho      
     MOV AL, [p2_hp]
     XOR AH, AH
     MOV BX, 20
-    MUL BX              ; DX:AX = HP * 20
-    MOV SI, AX          ; SI = Largura
-    
-    MOV CX, 620         ; Borda máxima direita da barra
-    SUB CX, AX          ; Subtrai a largura para "encolher" da esquerda para a direita
-    
-    ; Restaura coordenadas após o MUL
-    MOV DX, 20          ; Y
-    MOV DI, 15          ; Altura
-    MOV AL, 14          ; Cor: Amarelo
+    MUL BX              
+    MOV SI, AX          
+    MOV CX, 620         
+    SUB CX, AX          
+    MOV DX, 20          
+    MOV DI, 15          
+    MOV AL, 14          
     CALL desenha_retangulo
 
 fim_desenho:
