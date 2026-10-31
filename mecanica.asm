@@ -92,7 +92,7 @@ check_p1_attacks:               ; verificar os ataques
 
 check_punch_p1:                 ; verifica o soco de P1
     ; Soco (T=14h)
-    CMP byte [key_map + 14h], 1 ; compara a tecla de soco com 1
+    CMP byte [key_map + 14h], 1 ; verifica se tecla de soco está sendo pressionada
     JNE check_kick_p1           ; se o soco nao foi dado pula para a verificacao do chute
     MOV byte [p1_estado], 4     ; caso contrario, atribui o estado de ATACANDO SOCO a P1
     MOV byte [p1_timer], 5      ; segura estado de soco por ~0.25 seg
@@ -101,7 +101,7 @@ check_punch_p1:                 ; verifica o soco de P1
 
 check_kick_p1:                  ; verifica o chute de P1
     ; chute (R=13h)
-    CMP byte [key_map + 13h], 1 ; compara a tecla de chute com 1
+    CMP byte [key_map + 13h], 1 ; verifica se tecla de chute está sendo pressionada
     JNE trata_p2                ; se o chute nao foi dado, pula para a verificacao de p2
     MOV byte [p1_estado], 5     ; caso o contrario, atribui o estado de ATACANDO CHUTE a P1
     MOV byte [p1_timer], 5
@@ -114,13 +114,13 @@ trata_p2:
     JE le_p2_input
     
     DEC byte [p2_timer]
-    JNZ fim_mecanica
+    JZ timer_zerou_2
+    JMP fim_mecanica
     
+timer_zerou_2:
     MOV byte [p2_estado], 0
     MOV word [p2_y], 300
     JMP fim_mecanica
-
-check_p2:
 
 le_p2_input:
     MOV byte [p2_estado], 0     ; Default: Parado
@@ -155,6 +155,7 @@ check_p2_right:
     MOV byte [p2_estado], 1
 
 check_p2_attacks:               ; verificar os ataques
+
 check_punch_p2:                 ; verifica o soco de P2
     ; Soco (M=32h)
     CMP byte [key_map + 32h], 1 ; compara a tecla de soco com 1
@@ -162,11 +163,12 @@ check_punch_p2:                 ; verifica o soco de P2
     MOV byte [p2_estado], 4     ; caso contrario, atribui o estado de ATACANDO SOCO a P2
     CALL verifica_colisao_soco_p2    ; pula para a verificacao de acerto do soco
     JMP fim_mecanica           ; apos isso, pula para a verificacao de P2
+
 check_kick_p2:                  ; verifica o chute de P1
     ; chute (N=31h)
     CMP byte [key_map + 31h], 1 ; compara a tecla de chute com 1
     JNE fim_mecanica            ; se o chute nao foi dado, pula para a o fim da mecanica
-    MOV byte [p2_estado], 4     ; caso o contrario, atribui o estado de ATACANDO CHUTE a P1
+    MOV byte [p2_estado], 5     ; caso o contrario, atribui o estado de ATACANDO CHUTE a P1
     MOV byte [p2_timer], 5
     CALL verifica_colisao_chute_p2    ; verifica se o chute acertou
 
@@ -191,6 +193,7 @@ calc_dist_p1:
     SUB AX, [p2_x]
     JNS check_dist_p1       ; Se o resultado não for negativo (Jump if Not Sign), pula
     NEG AX                  ; Inverte o sinal para virar positivo
+
 check_dist_p1:
     CMP AX, 60              ; Distância máxima do soco
     JG sem_dano_p1
@@ -198,11 +201,13 @@ check_dist_p1:
     CMP byte [p2_hp], 0     ; Verifica se a vida já está zerada
     JE sem_dano_p1          ; Se sim, não subtrai
     DEC byte [p2_hp]        ; Dano aplicado
+
 sem_dano_p1:
     RET
 
 ; === FUNÇÃO DE COLISÃO DO JOGADOR 2 ===
 verifica_colisao_p2:
+
 verifica_colisao_soco_p2:
     CMP byte [p1_estado], 2 ; se P1 estiver agachado, ele se defende do soco
     JE sem_dano_p2          ; assume que p2 nao infligiu dano
@@ -225,5 +230,6 @@ check_dist_p2:
     CMP byte [p1_hp], 0     ; Verifica se a vida já está zerada
     JE sem_dano_p2          ; Se sim, não subtrai
     DEC byte [p1_hp]        ; Dano aplicado
+
 sem_dano_p2:
     RET
