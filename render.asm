@@ -1,6 +1,5 @@
 segment data public
-    global desenha_cena
-    global desenha_fundo
+    global desenha_cena, desenha_fundo, desenha_pause, apaga_pause
     extern p1_x, p1_y, p1_hp, p1_x_antigo, p1_y_antigo, p1_estado
     extern p2_x, p2_y, p2_hp, p2_x_antigo, p2_y_antigo, p2_estado
 
@@ -177,4 +176,40 @@ coluna:
     POP DX
     POP CX
 fim_retangulo:
+    RET
+
+desenha_pause:
+    ; Barra esquerda (Branca)
+    MOV CX, 305         ; Centralizado no X (metade de 640)
+    MOV DX, 220         ; Centralizado no Y (metade de 480)
+    MOV SI, 10          ; Largura
+    MOV DI, 40          ; Altura
+    MOV AL, 15          ; Cor: 15 (Branco)
+    CALL desenha_retangulo
+
+    ; Barra direita (Branca)
+    MOV CX, 325         ; 10 pixels de espaço entre as barras
+    MOV DX, 220
+    MOV SI, 10
+    MOV DI, 40
+    MOV AL, 15          
+    CALL desenha_retangulo
+    RET
+
+apaga_pause:
+    ; Apaga barra esquerda (Preta)
+    MOV CX, 305
+    MOV DX, 220
+    MOV SI, 10
+    MOV DI, 40
+    MOV AL, 0           ; Cor: 0 (Preto - Fundo)
+    CALL desenha_retangulo
+
+    ; Apaga barra direita (Preta)
+    MOV CX, 325
+    MOV DX, 220
+    MOV SI, 10
+    MOV DI, 40
+    MOV AL, 0
+    CALL desenha_retangulo
     RET
