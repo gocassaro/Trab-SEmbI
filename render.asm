@@ -1,7 +1,8 @@
 segment data public
-    global desenha_cena, desenha_fundo, desenha_pause, apaga_pause
+    global desenha_cena, desenha_fundo, desenha_pause, apaga_pause, desenha_menu_quit, apaga_menu_quit
     extern p1_x, p1_y, p1_hp, p1_x_antigo, p1_y_antigo, p1_estado
     extern p2_x, p2_y, p2_hp, p2_x_antigo, p2_y_antigo, p2_estado
+    msg_sair db 'QUIT? Y/N', 0
 
 segment code
 
@@ -210,6 +211,61 @@ apaga_pause:
     MOV DX, 220
     MOV SI, 10
     MOV DI, 40
+    MOV AL, 0
+    CALL desenha_retangulo
+    RET
+
+desenha_menu_quit:
+    ; 1. Desenha a borda do menu (Branca)
+    MOV CX, 220         ; X
+    MOV DX, 180         ; Y
+    MOV SI, 200         ; Largura
+    MOV DI, 60          ; Altura
+    MOV AL, 15          ; Cor 15 (Branco)
+    CALL desenha_retangulo
+
+    ; 2. Desenha o miolo do menu (Preto)
+    MOV CX, 225
+    MOV DX, 185
+    MOV SI, 190
+    MOV DI, 50
+    MOV AL, 0           ; Cor 0 (Preto)
+    CALL desenha_retangulo
+
+    ; 3. Posiciona o cursor de texto da BIOS
+    MOV AH, 02h
+    MOV BH, 0           ; Página de vídeo
+    MOV DH, 13          ; Linha (Y do texto)
+    MOV DL, 36          ; Coluna (X do texto)
+    INT 10h
+
+    ; 4. Loop de impressão da string (Caracter por caracter)
+    MOV BX, msg_sair
+    
+print_loop:
+    MOV AL, [BX]        ; Pega o caractere atual da string
+    CMP AL, 0           ; Verifica se é o terminador (0)
+    JE fim_menu_saida   ; Se for zero, acabou a string
+    
+    MOV AH, 0Eh         ; Função Teletype da BIOS
+    PUSH BX             ; Salva o ponteiro da string
+    MOV BH, 0
+    MOV BL, 14          ; Cor 14 (Amarelo) para o texto
+    INT 10h
+    POP BX              ; Restaura o ponteiro
+    
+    INC BX              ; Avança pro próximo caractere
+    JMP print_loop
+
+fim_menu_saida:
+    RET
+
+apaga_menu_quit:
+    ; Apaga o menu pintando um retângulo preto por cima
+    MOV CX, 220
+    MOV DX, 180
+    MOV SI, 200
+    MOV DI, 60
     MOV AL, 0
     CALL desenha_retangulo
     RET

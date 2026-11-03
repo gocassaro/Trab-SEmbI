@@ -1,7 +1,8 @@
 segment data public
     extern teclado_init, teclado_restore, timer_init, timer_restore
     extern frame_flag, atualiza_mecanica
-    extern desenha_cena, key_map, desenha_fundo, desenha_pause, apaga_pause
+    extern desenha_cena, key_map, desenha_fundo
+    extern desenha_pause, apaga_pause, desenha_menu_quit, apaga_menu_quit
     modo_anterior db 0
     estado_jogo   db 0  ; 0=Menu, 1=Jogando, 2=Pause, 3=Game Over
 
@@ -24,7 +25,7 @@ segment code
 game_loop:
     ; Quit (Tecla Q = 10h)
     CMP byte [key_map + 10h], 1
-    JE sair_jogo
+    JE pede_confirmacao_quit
 
     ; Pause (Tecla P = 19h)
     CMP byte [key_map + 19h], 1
@@ -39,12 +40,35 @@ game_loop:
 
     JMP game_loop
 
+pede_confirmacao_quit:
+    CALL desenha_menu_quit
+
+espera_tecla_menu:
+    CMP byte [key_map + 15h], 1 ; Verifica tecla Y (Make code 15h)
+    JE sair_jogo
+    CMP byte [key_map + 31h], 1 ; Verifica tecla N (Make code 31h)
+    JE cancela_quit
+    JMP espera_tecla_menu
+
+cancela_quit:
+    CALL apaga_menu_quit
+
+espera_soltar_n:
+    CMP byte [key_map + 31h], 0 ; Aguarda soltar o N para evitar double input
+    JNE espera_soltar_n
+    
+espera_soltar_q:
+    CMP byte [key_map + 10h], 0 ; Aguarda soltar o Q para não reabrir o menu
+    JNE espera_soltar_q
+
+    JMP game_loop               ; Volta pro jogo normal
+
 pausa_jogo:
     CALL desenha_pause
 
-espera_soltar_1:
+espera_soltar_p1:
     CMP byte [key_map + 19h], 0 ; Aguarda o jogador soltar a tecla P que ativou o pause
-    JNE espera_soltar_1
+    JNE espera_soltar_p1
 
 pause_loop:
     CMP byte [key_map + 19h], 1 ; Fica em loop infinito aguardando apertar P de novo
@@ -52,9 +76,9 @@ pause_loop:
 
     CALL apaga_pause            ; Limpa o símbolo da tela para não deixar rastro
 
-espera_soltar_2:
+espera_soltar_p2:
     CMP byte [key_map + 19h], 0 ; Aguarda soltar o P antes de voltar a mover os personagens
-    JNE espera_soltar_2
+    JNE espera_soltar_p2
 
     JMP game_loop               ; Retorna ao jogo exatamente como estava
     
@@ -62,7 +86,7 @@ sair_jogo:
     CALL timer_restore
     CALL teclado_restore
     
-    ; Restaura modo de vídeo[cite: 9]
+    ; Restaura modo de vídeo
     MOV AH, 00h
     MOV AL, [modo_anterior]
     INT 10h
