@@ -1,12 +1,13 @@
 segment data public
     global desenha_cena, desenha_fundo, desenha_pause, apaga_pause, desenha_menu_quit, apaga_menu_quit
-    extern p1_x, p1_y, p1_hp, p1_x_antigo, p1_y_antigo, p1_estado
+    global index_p1, index_p2, cor_p1, cor_p2, color_map
+	extern p1_x, p1_y, p1_hp, p1_x_antigo, p1_y_antigo, p1_estado
     extern p2_x, p2_y, p2_hp, p2_x_antigo, p2_y_antigo, p2_estado
     msg_sair db 'QUIT? Y/N', 0
     
     cor		db		branco_intenso
 							; I R G B COR
-    pRETo			equ		0	; 0 0 0 0 pRETo
+    preto			equ		0	; 0 0 0 0 preto
     azul			equ		1	; 0 0 0 1 azul
     verde			equ		2	; 0 0 1 0 verde
     cyan			equ		3	; 0 0 1 1 cyan
@@ -25,13 +26,24 @@ segment data public
     deltAX			dw		0
     deltay			dw		0
 
+	; 2. Cria o vetor carregando as constantes (16 posições, índice 0 a 15)
+    color_map       db      preto, azul, verde, cyan, vermelho, magenta, marrom, branco, cinza, azul_claro, verde_claro, cyan_claro, rosa, magenta_claro, amarelo, branco_intenso
+
+    ; Variáveis para armazenar o índice escolhido pelos jogadores (ex: 1 para azul, 4 para vermelho)
+    index_p1        db      1   
+    index_p2        db      4   
+
+    ; Variáveis finais das cores
+    cor_p1          db      azul
+    cor_p2          db      vermelho
+
 segment code
 
 ; =========================================================
 ; DESENHA FUNDO: EXECUTADO APENAS 1 VEZ AO INICIAR O JOGO
 ; =========================================================
 desenha_fundo:
-    ; 1. Limpa a tela inteira (Preenche de Preto)
+    ; 1. Limpa a tela inteira (Preenche de preto)
     MOV AX, 0600h
     MOV BH, 00h
     MOV CX, 0000h
@@ -141,7 +153,7 @@ desenha_cena:
 		PUSH	AX
 		mov		ax, 20
 		push	ax
-		mov		byte[cor], pRETo
+		mov		byte[cor], preto
 		call	desenha_retangulo2
 		
 		; faixa na cabeça P1 (X = p1_x + 3, Y = p1_y + 38)
@@ -159,7 +171,8 @@ desenha_cena:
 		PUSH	AX
 		mov		ax, 22
 		push	ax
-		mov		byte[cor], vermelho
+		MOV		BL, byte[cor_p1]
+		mov		byte[cor], BL
 		call	desenha_retangulo2
 
 		; cabeça P1 (X = p1_x + 4, Y = p1_y + 25)
@@ -195,7 +208,7 @@ desenha_cena:
 		PUSH	AX
 		mov		ax, 3
 		push	ax
-		mov		byte[cor], pRETo
+		mov		byte[cor], preto
 		call	desenha_retangulo2
 		
 		; peito P1 (X = p1_x, Y = p1_y) -> Ponto de ancoragem base
@@ -263,7 +276,8 @@ desenha_cena:
 		PUSH	AX
 		mov		ax, 28
 		push	ax
-		mov		byte[cor], vermelho
+		MOV 	BL, byte[cor_p1]
+		mov		byte[cor], BL
 		call	desenha_retangulo2
 		
 		; pés P1 (Esquerdo: X = p1_x - 6, Y = p1_y - 33 | Direito: X = p1_x + 22, Y = p1_y - 33)
@@ -374,7 +388,7 @@ desenha_cena:
 		PUSH	AX
 		mov		ax, 20
 		push	ax
-		mov		byte[cor], pRETo
+		mov		byte[cor], preto
 		call	desenha_retangulo2
 		
 		; faixa na cabeça P2 (X = p2_x + 1, Y = p2_y + 38)
@@ -392,7 +406,8 @@ desenha_cena:
 		PUSH	AX
 		mov		ax, 22
 		push	ax
-		mov		byte[cor], azul
+		MOV		BL, byte[cor_p2]
+		mov		byte[cor], BL
 		call	desenha_retangulo2
 
 		; cabeça P2 (X = p2_x + 2, Y = p2_y + 25)
@@ -428,7 +443,7 @@ desenha_cena:
 		PUSH	AX
 		mov		ax, 3
 		push	ax
-		mov		byte[cor], pRETo
+		mov		byte[cor], preto
 		call	desenha_retangulo2
 		
 		; peito P2 (X = p2_x, Y = p2_y)
@@ -496,7 +511,8 @@ desenha_cena:
 		PUSH	AX
 		mov		ax, 28
 		push	ax
-		mov		byte[cor], azul
+		MOV     BL, byte[cor_p2]
+		mov		byte[cor], BL
 		call	desenha_retangulo2
 		
 		; pés P2 (Esquerdo: X = p2_x + 20, Y = p2_y - 33 | Direito: X = p2_x - 6, Y = p2_y - 33)
@@ -708,7 +724,7 @@ apaga_pause:
     MOV DX, 220
     MOV SI, 10
     MOV DI, 40
-    MOV AL, 0           ; Cor: 0 (Preto - Fundo)
+    MOV AL, 0           ; Cor: 0 (preto - Fundo)
     CALL desenha_retangulo
 
     ; Apaga barra direita (Preta)
@@ -729,12 +745,12 @@ desenha_menu_quit:
     MOV AL, 15          ; Cor 15 (Branco)
     CALL desenha_retangulo
 
-    ; 2. Desenha o miolo do menu (Preto)
+    ; 2. Desenha o miolo do menu (preto)
     MOV CX, 225
     MOV DX, 185
     MOV SI, 190
     MOV DI, 50
-    MOV AL, 0           ; Cor 0 (Preto)
+    MOV AL, 0           ; Cor 0 (preto)
     CALL desenha_retangulo
 
     ; 3. Posiciona o cursor de texto da BIOS
