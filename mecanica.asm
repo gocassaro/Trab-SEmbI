@@ -1,8 +1,8 @@
 segment data public
     global p1_x, p1_y, p1_hp, p1_estado
     global p2_x, p2_y, p2_hp, p2_estado
-    global p1_x_antigo, p1_y_antigo
-    global p2_x_antigo, p2_y_antigo
+    global p1_x_antigo, p1_y_antigo, p1_estado_antigo
+    global p2_x_antigo, p2_y_antigo, p2_estado_antigo
     global atualiza_mecanica
     extern key_map
     
@@ -13,6 +13,7 @@ segment data public
     p1_y      dw 80
     p1_x_antigo dw 100
     p1_y_antigo dw 80
+    p1_estado_antigo db 0
     p1_hp     db 10
     p1_estado db 0
     p1_timer  db 0       ; Timer para duração do soco/chute
@@ -21,6 +22,7 @@ segment data public
     p2_y      dw 80
     p2_x_antigo dw 500
     p2_y_antigo dw 80
+    p2_estado_antigo db 0
     p2_hp     db 10
     p2_estado db 0
     p2_timer  db 0
@@ -33,11 +35,15 @@ atualiza_mecanica:
     MOV [p1_x_antigo], AX
     MOV AX, [p1_y]
     MOV [p1_y_antigo], AX
+    MOV AL, [p1_estado]
+    MOV [p1_estado_antigo], AL
 
     MOV AX, [p2_x]
     MOV [p2_x_antigo], AX
     MOV AX, [p2_y]
     MOV [p2_y_antigo], AX
+    MOV AL, [p2_estado]
+    MOV [p2_estado_antigo], AL
 
 ; === JOGADOR 1 (W=11h, A=1Eh, S=1Fh, D=20h, (Chute)R=13h, (Soco)T=14h) ===
 trata_p1:
@@ -64,7 +70,7 @@ le_p1_input:
     JNE check_p1_jump           ; caso nao tenha sido salta para a proxima verificacao
     MOV byte [p1_estado], 2     ; caso contrario, atribui o estado de agachado ao P1
     MOV byte [p1_timer], 9      ; 9 frames = ~0.5 segundos
-    MOV word [p1_y], 70        ; Abaixa o Y em 10px para compensar a altura cortada
+    MOV word [p1_y], 80        ; Abaixa o Y em 10px para compensar a altura cortada
     JMP check_p1_attacks        ; 
     
 check_p1_jump:
@@ -130,7 +136,7 @@ le_p2_input:
     JNE check_p2_jump
     MOV byte [p2_estado], 2
     MOV byte [p2_timer], 9
-    MOV word [p2_y], 70
+    MOV word [p2_y], 80
     JMP check_p2_attacks
     
 check_p2_jump:

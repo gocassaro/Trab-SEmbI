@@ -34,9 +34,9 @@ sprite_p1:
 
 sprite_p1_soco:
     ; Igual ao P1, mas com o braço direito e mão esticados para frente
-    dw 4, 46, 20, 4, 0
-    dw 3, 41, 22, 3, 99
-    dw 4, 37, 20, 12, 6
+    dw 4, 46, 20, 4, 0      
+    dw 3, 41, 22, 3, 99     
+    dw 4, 37, 20, 12, 6     
     dw 18, 35, 3, 3, 0
     dw 0, 23, 26, 23, 15
     dw -2, -5, 11, 23, 15
@@ -46,7 +46,7 @@ sprite_p1_soco:
     dw 22, -27, 10, 6, 6
     dw 26, 18, 30, 7, 15    ; Braço esticado (Largura: 30)
     dw -4, 10, 7, 6, 6
-    dw 56, 20, 8, 7, 6      ; Mao Dir esticada na ponta (X: 56)
+    dw 56, 20, 8, 7, 6      ; Mão Direita esticada na ponta (X: 56)
 
 sprite_p1_chute:
     ; Igual ao P1, mas com a perna direita esticada
@@ -56,10 +56,10 @@ sprite_p1_chute:
     dw 18, 35, 3, 3, 0
     dw 0, 23, 26, 23, 15
     dw -2, -5, 11, 23, 15
-    dw 18, -5, 45, 10, 15   ; Perna Dir esticada (Largura: 45)
+    dw 18, -5, 35, 10, 15   ; Perna Dir esticada (Largura: 35)
     dw -1, -1, 28, 5, 99
     dw -6, -27, 12, 6, 6
-    dw 63, -13, 8, 8, 6     ; Pe Dir no ar (X: 63, Y: -13)
+    dw 48, -3, 10, 12, 6     ; Pé Direito no ar (X: 48, Y: -3)
     dw 26, 18, 7, 7, 15
     dw -4, 10, 7, 6, 6
     dw 30, 20, 8, 7, 6
@@ -77,11 +77,11 @@ sprite_p1_agachado:
     dw -6, -27, 12, 6, 6
     dw 22, -27, 10, 6, 6
     dw 26, -7, 7, 7, 15     ; Braco desce
-    dw -4, -15, 7, 6, 6     ; Mao Esq
-    dw 30, -5, 8, 7, 6      ; Mao Dir
+    dw -4, -15, 7, 6, 6     ; Mao Esquerda
+    dw 30, -5, 8, 7, 6      ; Mao Direita
 
 ; =========================================================
-; SPRITES DO JOGADOR 2 (Virado para a esquerda)
+; SPRITES DO JOGADOR 2 ( MESMA COISA QUE P1 SÓ QUE VIRADO PARA A ESQUERDA)
 ; =========================================================
 sprite_p2:
     dw 2, 46, 20, 4, 0
@@ -109,9 +109,9 @@ sprite_p2_soco:
     dw -1, -1, 28, 5, 99
     dw 20, -27, 12, 6, 6
     dw -6, -27, 10, 6, 6
-    dw -30, 18, 30, 7, 15   ; Braco esticado p/ esq
+    dw -30, 18, 30, 7, 15   ; Braco esticado p/ esquerda
     dw 23, 10, 7, 6, 6
-    dw -38, 20, 8, 7, 6     ; Mao Dir na ponta esq
+    dw -38, 20, 8, 7, 6     ; Mao Direira na ponta esquerda
 
 sprite_p2_chute:
     dw 2, 46, 20, 4, 0
@@ -120,10 +120,10 @@ sprite_p2_chute:
     dw 5, 35, 3, 3, 0
     dw 0, 23, 26, 23, 15
     dw 17, -5, 11, 23, 15
-    dw -37, -5, 45, 10, 15  ; Perna esticada p/ esq
+    dw -28, -5, 35, 10, 15  ; Perna esticada p/ esquerda
     dw -1, -1, 28, 5, 99
     dw 20, -27, 12, 6, 6
-    dw -45, -13, 8, 8, 6    ; Pe Dir
+    dw -32, -3, 10, 12, 6    ; Pe Direito
     dw -7, 18, 7, 7, 15
     dw 23, 10, 7, 6, 6
     dw -12, 20, 8, 7, 6
