@@ -12,7 +12,7 @@ segment code
     MOV AX, data
     MOV DS, AX
     
-    ; Salva modo de vídeo e entra no modo Gráfico VGA 640x480[cite: 8]
+    ; Salva modo de vídeo e entra no modo Gráfico VGA 640x480
     MOV AH, 0Fh
     INT 10h
     MOV [modo_anterior], AL
@@ -24,11 +24,16 @@ segment code
     CALL desenha_fundo
 
 select_loop:
-    CMP byte [key_map + 10h], 1
+    CMP byte [key_map + 10h], 1 ; Tecla Q para sair direto do menu
     JNE renderiza_selecao
     JMP pede_confirmacao_quit
 
 renderiza_selecao:
+    ; Sincronizador de frames (18.2 Hz)
+    CMP byte [frame_flag], 1
+    JNE select_loop
+    MOV byte [frame_flag], 0
+
     CALL desenha_cena
 
 check_select_p1:
@@ -39,6 +44,7 @@ select_up_p1:
     CMP byte[index_p1], -1      ; verifica se o index eh -1
     JNE check_select_p2          
     MOV byte[index_p1], 15      ; caso seja atribui 15 ao index da cor de p1 (shift circular)
+    JMP check_select_p2         ; impede de verificar w e s pressionados ao mesmo tempo (prioriza w)
 select_down_p1:
     CMP byte [key_map + 1Fh], 1 ; verifica se a tecla s foi apertada
     JNE check_select_p2         ; caso não tenha sido pula para a verificaçao da tecla a atribuição de cores
@@ -55,7 +61,8 @@ select_up_p2:
     CMP byte [index_p2], -1     ; Verifica se deu underflow (-1 / 0xFF)
     JNE atribui_cores
     MOV byte [index_p2], 15     ; Shift circular: atribui 15 ao índice de P2
-
+    JMP atribui_cores
+    
 select_down_p2:
     CMP byte [key_map + 50h], 1 ; Verifica se a seta para Baixo foi apertada
     JNE atribui_cores           ; Se não foi, avança para a atribuição de cores
@@ -65,11 +72,13 @@ select_down_p2:
     MOV byte [index_p2], 0      ; Shift circular: atribui 0 ao índice de P2
 
 atribui_cores:
+    ; Aplica a cor do P1
     XOR BX, BX
     MOV BL, byte [index_p1]
     MOV AL, byte [color_map + BX]
     MOV byte [cor_p1], AL 
     
+    ; Aplica a cor do P2
     XOR BX, BX
     MOV BL, byte [index_p2]
     MOV AL, byte [color_map + BX]
