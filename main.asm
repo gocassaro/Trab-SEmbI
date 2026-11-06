@@ -1,5 +1,5 @@
 segment data public
-    extern teclado_init, teclado_restore, timer_init, timer_restore
+    extern teclado_init, teclado_restore, timer_init, timer_restore, tempo_round
     extern frame_flag, atualiza_mecanica
     extern desenha_cena, key_map, desenha_fundo
     extern desenha_pause, apaga_pause, desenha_menu_quit, apaga_menu_quit
@@ -13,11 +13,12 @@ segment data public
     p2_wins       db 0  ; quantidade de rounds vencidos por p2
     p1_knockout_msg db  'PLAYER 1 VENCEU O ROUND';23 caracteres 
     p2_knockout_msg db  'PLAYER 2 VENCEU O ROUND'
+    empate_msg      db  'EMPATE - REPETINDO ROUND'
     p1_win_msg      db  'PLAYER 1 VENCEU'; 15 caracteres
     p2_win_msg      db  'PLAYER 2 VENCEU'
     round_msg       db  'ROUND ' ; 6 caracteres
     current_round   db  1 ; primeiro round
-    vel             dw  5000;
+    vel             dw  15000;
     cor             db  0
 
 segment code
@@ -104,6 +105,7 @@ atribui_cores:
     JMP select_loop
 
 novo_round:
+    MOV word [tempo_round], 180 ;Reseta o temporizador para 3 minutos
     MOV CX, 6                
     MOV BX, 0                
     MOV DH, 12               
@@ -155,6 +157,25 @@ game_loop:
     ; Quit (Tecla Q = 10h)
     CMP byte [key_map + 10h], 1
     JE pede_confirmacao_quit
+    
+    ;VERIFICA SE O TEMPO DO ROUND ACABOU
+    CMP word [tempo_round], 0
+    JNE check_p1_knockout
+    
+    ;Se o tempo acabou, decide o vencedor do round por quem tiver mais HP
+    MOV AL, [p1_hp]
+    CMP AL, [p2_hp]
+    JE empate_jump_curto         ;Se P1 HP == P2 HP, deu EMPATE! 
+    JG p1_maior          ;Se P1 tiver mais ou igual HP, P1 leva o round
+    JMP p2_knockout          ;Caso contrário, P2 leva o round
+
+;Criado apenas para cuidar do jump curto JE
+empate_jump_curto:
+    JMP round_empate
+
+;Criado apenas para cuidar do jump curto JG
+p1_maior:
+    JMP p1_knockout          ; Salto longo seguro para p1_knockout
 
 check_p1_knockout:
     CMP byte[p2_hp], 0          ; verifica se a vida de p2 chegou a 0
@@ -177,6 +198,7 @@ check_pause:
 
     CALL atualiza_mecanica
     CALL desenha_cena       ; Agora ele atualiza apenas os pixels necessários
+    CALL imprime_tempo
 
     JMP game_loop
 
@@ -262,7 +284,7 @@ apaga_p1_knockout_msg:
     INC BX
     INC DL
     LOOP apaga_p1_knockout_msg
-
+    INC byte[current_round]
     JMP reinicia_posicoes
 
 p2_knockout:
@@ -303,9 +325,44 @@ apaga_p2_knockout_msg:
     INC BX
     INC DL
     LOOP apaga_p2_knockout_msg
+    INC byte[current_round]
+    JMP reinicia_posicoes
+
+round_empate:
+    ;Exibe a mensagem de empate na tela
+    MOV CX, 24               ;Tamanho da string 'EMPATE - REPETINDO ROUND'
+    MOV BX, 0                
+    MOV DH, 14               ;Linha central
+    MOV DL, 28               ;Coluna centralizada
+    MOV byte[cor], 15        ;Cor branca intensa
+
+imprime_empate_msg:
+    CALL cursor
+    MOV AL, [BX+empate_msg]
+    CALL caracter
+    INC BX
+    INC DL
+    LOOP imprime_empate_msg
+
+    CALL delay               ;Pausa para o jogador ler a mensagem
+
+    ;Apaga a mensagem de empate
+    MOV CX, 24               
+    MOV BX, 0                
+    MOV DH, 14               
+    MOV DL, 28              
+    MOV byte[cor], 0
+
+apaga_empate_msg:
+    CALL cursor
+    MOV AL, [BX+empate_msg]
+    CALL caracter
+    INC BX
+    INC DL
+    LOOP apaga_empate_msg
 
 reinicia_posicoes:
-    INC byte[current_round]
+
     MOV BX, word[p1_x]
     MOV word[p1_x_antigo], BX
     MOV word[p1_x], 100
@@ -450,6 +507,74 @@ imprime_p2_win:
     CALL delay
 
     JMP sair_jogo
+
+;-------------------------------------------
+; IMPRIME_TEMPO
+; Converte 'tempo_round' (segundos) para MM:SS e o exibe 
+; na parte superior central da tela.
+imprime_tempo:
+    ;Salva o registradores na pilha para preservar seu valor original
+    PUSH AX                 
+    PUSH BX                 
+    PUSH CX                 
+    PUSH DX                 
+    PUSH SI                 
+
+    MOV AX, [tempo_round]   ;Lê o tempo restante em segundos da variável correspondente[cite: 14, 19]
+    XOR DX, DX              ;Limpa o registrador DX (preparando para a divisão de 32 bits DX:AX)
+    MOV CX, 60              ;Define o divisor 60 (60 segundos = 1 minuto)
+    DIV CX                  ;Divide o tempo total por 60: AX = Minutos, DX = Segundos restantes
+
+    MOV BX, AX              ;Salva temporariamente a quantidade de minutos no registrador BX
+    MOV CX, DX              ;Salva temporariamente a quantidade de segundos restantes no registrador CX
+
+    ;Imprime Minutos
+    MOV DH, 2               ;Define a linha 2 da tela de texto para o cursor
+    MOV DL, 37              ;Define a coluna 37 para posicionar o dígito dos minutos
+    CALL cursor             ;Posiciona o cursor de texto do BIOS
+    MOV AX, BX              ;Recupera os minutos em AX
+    ADD AL, '0'             ;Converte o valor numérico para o caractere ASCII correspondente
+    MOV byte [cor], 15      ;Define a cor do caractere como 15 (branco intenso)
+    CALL caracter           ;Imprime o dígito dos minutos na tela
+
+    ;Imprime Dois Pontos ':'
+    MOV DH, 2               ;Mantém a linha 2
+    MOV DL, 38              ;Move para a coluna 38 (logo após os minutos)
+    CALL cursor             ;Posiciona o cursor de texto
+    MOV AL, ':'             ;Carrega o caractere literal de dois pontos
+    MOV byte [cor], 15      ;Define a cor como branco intenso
+    CALL caracter           ;Imprime os dois pontos na tela
+
+    ;Imprime Segundos (Dezena)
+    MOV AX, CX              ;Move os segundos restantes para AX para processamento
+    XOR DX, DX              ;Limpa DX para a nova divisão
+    MOV SI, 10              ;Define o divisor 10 para separar a dezena da unidade
+    DIV SI                  ;Divide os segundos por 10: AX = Dezena dos segundos, DX = Unidade
+    PUSH DX                 ;Salva temporariamente o valor da unidade (resto) na pilha
+
+    MOV DH, 2               ;Mantém a linha 2
+    MOV DL, 39              ;Define a coluna 39 para a dezena dos segundos
+    CALL cursor             ;Posiciona o cursor de texto
+    ADD AL, '0'             ;Converte o valor numérico da dezena para o caractere ASCII correspondente
+    MOV byte [cor], 15      ;Define a cor como branco intenso
+    CALL caracter           ;Imprime o dígito da dezena dos segundos na tela
+
+    ;Imprime Segundos (Unidade)
+    POP AX                  ;Recupera da pilha o valor da unidade dos segundos salvo anteriormente
+    MOV DH, 2               ;Mantém a linha 2
+    MOV DL, 40              ;Define a coluna 40 para a unidade dos segundos
+    CALL cursor             ;Posiciona o cursor de texto
+    ADD AL, '0'             ;Converte o valor numérico da unidade para o caractere ASCII correspondente
+    MOV byte [cor], 15      ;Define a cor como branco intenso
+    CALL caracter           ;Imprime o dígito da unidade dos segundos na tela
+
+    ;Restaura os registradores
+    POP SI                  
+    POP DX                  
+    POP CX                  
+    POP BX                  
+    POP AX                  
+    RET                     
 
 segment stack stack
     resb 256
