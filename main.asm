@@ -37,7 +37,7 @@ segment code
     CALL timer_init
     CALL desenha_fundo
 
-select_loop:
+select_loop:        ; loop para selecao da cor dos personagens
     CMP byte [key_map + 10h], 1 ; Tecla Q para sair direto do menu
     JNE renderiza_selecao
     JMP pede_confirmacao_quit
@@ -72,16 +72,16 @@ select_up_p2:
     CMP byte [key_map + 48h], 1 ; Verifica se a seta para Cima foi apertada
     JNE select_down_p2          ; Se não foi, pula para a verificação da seta para Baixo
     SUB byte [index_p2], 1      ; Subtrai 1 do índice da cor de P2
-    CMP byte [index_p2], -1     ; Verifica se deu underflow (-1 / 0xFF)
+    CMP byte [index_p2], -1     ; Verifica se deu underflow
     JNE atribui_cores
     MOV byte [index_p2], 15     ; Shift circular: atribui 15 ao índice de P2
     JMP atribui_cores
     
 select_down_p2:
     CMP byte [key_map + 50h], 1 ; Verifica se a seta para Baixo foi apertada
-    JNE atribui_cores           ; Se não foi, avança para a atribuição de cores
+    JNE atribui_cores           ; Se não foi avança para a atribuição de cores
     ADD byte [index_p2], 1      ; Adiciona 1 ao índice da cor de P2
-    CMP byte [index_p2], 16     ; Verifica se ultrapassou a última cor (15)
+    CMP byte [index_p2], 16     ; Verifica se ultrapassou a última cor
     JNE atribui_cores
     MOV byte [index_p2], 0      ; Shift circular: atribui 0 ao índice de P2
 
@@ -106,11 +106,11 @@ atribui_cores:
 
 novo_round:
     MOV word [tempo_round], 180 ;Reseta o temporizador para 3 minutos
-    MOV CX, 6                
+    MOV CX, 6                   ; aqui começa o código para imprimir uma strign na tela
     MOV BX, 0                
     MOV DH, 12               
     MOV DL, 35               
-    MOV byte[cor], 15        
+    MOV byte[cor], 15           ; atribui 15 (branco intenso) à variavel cor 
 
 imprime_texto_round:
     CALL cursor              
@@ -121,20 +121,22 @@ imprime_texto_round:
     INC DL                   
     LOOP imprime_texto_round
 
-    CALL cursor              ; Atualiza o cursor para a posição logo após o espaço[cite: 1, 7]
+    CALL cursor                 ; atualiza o cursor para a posição logo após o espaço
     
     MOV AL, [current_round]
-    ADD AL, '0'              ; Converte o número para o caractere ASCII ('1') somando 30h
+    ADD AL, '0'                 ; converte o número para o caractere ASCII ('1') somando 30h
     
     CALL caracter
 
     CALL delay
 
-    MOV CX, 6                
+    ; essa parte serve para apagar a string que foi escrita antes
+    ; o coidigo é quase o mesmo, mas vai ser escrigo com preto (0)
+    MOV CX, 6                   
     MOV BX, 0                
     MOV DH, 12               
     MOV DL, 35               
-    MOV byte[cor], 0        
+    MOV byte[cor], 0            ; 0 (preto)
 
 apaga_texto_round:
     CALL cursor              
@@ -145,7 +147,7 @@ apaga_texto_round:
     INC DL                   
     LOOP apaga_texto_round
 
-    CALL cursor              ; Atualiza o cursor para a posição logo após o espaço[cite: 1, 7]
+    CALL cursor              ; Atualiza o cursor para a posição logo após o espaço
     
     MOV AL, [current_round]
     ADD AL, '0'              ; Converte o número para o caractere ASCII ('1') somando 30h
@@ -185,7 +187,7 @@ check_p1_knockout:
 check_p2_knockout:
     CMP byte[p1_hp], 0          ; verifica se a vida de p1 chegou a 0
     JNE check_pause
-    JMP  p2_knockout
+    JMP  p2_knockout            ; pula para a função de vencimento de round do p2
 
 check_pause:
     ; Pause (Tecla P = 19h)
@@ -247,16 +249,17 @@ espera_soltar_p2:
     JMP game_loop               ; Retorna ao jogo exatamente como estava
 
 p1_knockout:
-    INC byte[p1_wins]
-    CMP byte[p1_wins], 2
+    INC byte[p1_wins]           ; incrementa a variavel de quantidade de vitorias (rounds vencidos) de p1
+    CMP byte[p1_wins], 2        ; verifica se essa mesma variável ja é 2 (caso de vitoria de p1)
     JNE prepara_imprime_p1_knockout
-    JMP vitoria_p1
+    JMP vitoria_p1              ; caso seja, salta para a funçao de vitoria de p1
 
 prepara_imprime_p1_knockout:
-    MOV CX, 23               ; Define o tamanho exato da nova string
-    MOV BX, 0                ; Inicializa o índice do caractere
-    MOV DH, 14               ; Define a linha no meio da tela (0 a 29)
-    MOV DL, 28               ; Define a coluna centralizada (0 a 79)
+    ; essa paete do codigo serve para imprimir na tela a mensagem de vitoria de round para p1
+    MOV CX, 23               
+    MOV BX, 0                
+    MOV DH, 14               
+    MOV DL, 28               
     MOV byte[cor], 15
 
 imprime_p1_knockout:
@@ -268,13 +271,13 @@ imprime_p1_knockout:
     INC DL
     LOOP imprime_p1_knockout
 
-    CALL delay
+    CALL delay              ; chamada de delay para que a mensagem fique um tempo na tela
 
     MOV CX, 23               
     MOV BX, 0                
     MOV DH, 14               
     MOV DL, 28              
-    MOV byte[cor], 0
+    MOV byte[cor], 0        ; print da mensagem em branco
 
 apaga_p1_knockout_msg:
     CALL cursor
@@ -288,12 +291,13 @@ apaga_p1_knockout_msg:
     JMP reinicia_posicoes
 
 p2_knockout:
-    INC byte[p2_wins]
-    CMP byte[p2_wins], 2
+    INC byte[p2_wins]               ; incrementa a variavel de quantidade de vitorias (rounds vencidos) de p2
+    CMP byte[p2_wins], 2            ; verifica se essa mesma variável ja é 2 (caso de vitoria de p2)
     JNE prepara_imprime_p2_knockout
-    JMP vitoria_p2
+    JMP vitoria_p2                  ; caso seja, salta para a funçao de vitoria de p2
 
 prepara_imprime_p2_knockout:
+    ; essa paete do codigo serve para imprimir na tela a mensagem de vitoria de round para p2
     MOV CX, 23              
     MOV BX, 0                
     MOV DH, 14               
@@ -363,6 +367,7 @@ apaga_empate_msg:
 
 reinicia_posicoes:
 
+    ; essa parte do codigo reinicia todas as variaveis de posicao para que possa começar um novo round
     MOV BX, word[p1_x]
     MOV word[p1_x_antigo], BX
     MOV word[p1_x], 100
@@ -378,6 +383,7 @@ reinicia_posicoes:
     MOV word[p2_y], 80
 
 reinicia_estados:
+    ; atribui os estados dos player como parado (estado 0)
     MOV BX, word[p1_estado]
     MOV word[p1_estado_antigo], BX
     MOV word[p1_estado], 0
@@ -386,12 +392,15 @@ reinicia_estados:
     MOV word[p2_estado], 0
 
 reinicia_hps:
+    ;preenche a barra de hp de cada um dos players
     MOV byte[p1_hp], 10
     MOV byte[p2_hp], 10
 
     CALL desenha_cena
+    ; pula para um novo round
     JMP novo_round
 
+; funcao de delay obtida no laboratorio 5
 delay:
 		MOV		CX, word[vel];
 del2:
@@ -468,7 +477,8 @@ caracter:
 		POPf
 		RET
 
-vitoria_p1:
+vitoria_p1: ; funcao de vitoria de p1
+    ; escreve na tela a mensagem de vitoria de p1
     MOV CX, 15               
     MOV BX, 0                
     MOV DH, 14               
@@ -486,7 +496,7 @@ imprime_p1_win:
 
     CALL delay
 
-    JMP sair_jogo
+    JMP sair_jogo       ; sai do jogo apos p1 vencer
 
 vitoria_p2:
     MOV CX, 15               
@@ -520,7 +530,7 @@ imprime_tempo:
     PUSH DX                 
     PUSH SI                 
 
-    MOV AX, [tempo_round]   ;Lê o tempo restante em segundos da variável correspondente[cite: 14, 19]
+    MOV AX, [tempo_round]   ;Lê o tempo restante em segundos da variável correspondente
     XOR DX, DX              ;Limpa o registrador DX (preparando para a divisão de 32 bits DX:AX)
     MOV CX, 60              ;Define o divisor 60 (60 segundos = 1 minuto)
     DIV CX                  ;Divide o tempo total por 60: AX = Minutos, DX = Segundos restantes
