@@ -1,5 +1,5 @@
 segment data public
-    global desenha_cena, desenha_fundo, desenha_pause, apaga_pause, desenha_menu_quit, apaga_menu_quit
+    global desenha_cena, desenha_fundo, desenha_pause, apaga_pause, desenha_menu_quit, apaga_menu_quit, desenha_retangulo
     global index_p1, index_p2, cor_p1, cor_p2, color_map
     
     extern p1_x, p1_y, p1_hp, p1_x_antigo, p1_y_antigo, p1_estado, p1_estado_antigo

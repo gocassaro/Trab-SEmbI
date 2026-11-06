@@ -1,7 +1,7 @@
 segment data public
     extern teclado_init, teclado_restore, timer_init, timer_restore, tempo_round
     extern frame_flag, atualiza_mecanica
-    extern desenha_cena, key_map, desenha_fundo
+    extern desenha_cena, key_map, desenha_fundo, desenha_retangulo
     extern desenha_pause, apaga_pause, desenha_menu_quit, apaga_menu_quit
     extern color_map, index_p1, index_p2, cor_p1, cor_p2
     extern p1_hp, p2_hp, p1_estado, p2_estado, p1_estado_antigo, p2_estado_antigo
@@ -17,8 +17,10 @@ segment data public
     p1_win_msg      db  'PLAYER 1 VENCEU'; 15 caracteres
     p2_win_msg      db  'PLAYER 2 VENCEU'
     round_msg       db  'ROUND ' ; 6 caracteres
+    GAME_OVER_MSG   db  'GAME OVER'; 9 caracteres
+    msg_reiniciar   db  'REINICIAR? Y/N', 0; 14 caracteres
     current_round   db  1 ; primeiro round
-    vel             dw  15000;
+    vel             dw  3000  ;15000;
     cor             db  0
 
 segment code
@@ -496,7 +498,23 @@ imprime_p1_win:
 
     CALL delay
 
-    JMP sair_jogo       ; sai do jogo apos p1 vencer
+    MOV CX, 15               
+    MOV BX, 0                
+    MOV DH, 14               
+    MOV DL, 28               
+    MOV byte[cor], 0
+
+apaga_p1_win:
+    CALL cursor
+    MOV  AL, [BX+p1_win_msg]
+    CALL caracter
+
+    INC BX
+    INC DL
+    LOOP apaga_p1_win
+
+
+    JMP fim_de_jogo       ; pula para a funcao de fim de jogo
 
 vitoria_p2:
     MOV CX, 15               
@@ -516,7 +534,22 @@ imprime_p2_win:
 
     CALL delay
 
-    JMP sair_jogo
+    MOV CX, 15               
+    MOV BX, 0                
+    MOV DH, 14               
+    MOV DL, 28               
+    MOV byte[cor], 15
+
+apaga_p2_win:
+    CALL cursor
+    MOV  AL, [BX+p2_win_msg]
+    CALL caracter
+
+    INC BX
+    INC DL
+    LOOP apaga_p2_win
+
+    JMP fim_de_jogo
 
 ;-------------------------------------------
 ; IMPRIME_TEMPO
@@ -585,6 +618,129 @@ imprime_tempo:
     POP BX                  
     POP AX                  
     RET                     
+
+fim_de_jogo:
+    MOV CX, 9              
+    MOV BX, 0                
+    MOV DH, 14               
+    MOV DL, 28              
+    MOV byte[cor], 15
+
+imprime_game_over:
+    CALL cursor
+    MOV  AL, [BX+GAME_OVER_MSG]
+    CALL caracter
+
+    INC BX
+    INC DL
+    LOOP imprime_game_over
+
+    CALL delay
+
+    MOV CX, 9             
+    MOV BX, 0                
+    MOV DH, 14               
+    MOV DL, 28              
+    MOV byte[cor], 0
+
+apaga_game_over:
+    CALL cursor
+    MOV  AL, [BX+GAME_OVER_MSG]
+    CALL caracter
+
+    INC BX
+    INC DL
+    LOOP apaga_game_over
+
+    CALL desenha_menu_reinicia
+    ;selecao de uma nova partida ou sair do jogo
+fim_loop:
+    CMP byte [key_map + 15h], 1     ;verifica se a tecla Y foi ativada
+    JNE verifica_tecla_n_fim_loop
+    JMP reinicia_jogo
+
+verifica_tecla_n_fim_loop:
+    CMP byte [key_map + 31h], 1     ; Verifica tecla N (Make code 31h)
+    JNE fim_loop
+    JMP sair_jogo
+
+; DESENHA_MENU_REINICIA
+; Cria a caixa de diálogo de confirmação de reiniciacao ("REINICIAR? Y/N")
+; desenhando um retângulo de fundo e escrevendo o texto via BIOS.
+desenha_menu_reinicia:
+
+    ; Desenha a borda/fundo externo do menu (Retângulo Branco)
+    MOV CX, 220         
+    MOV DX, 180         
+    MOV SI, 200         
+    MOV DI, 60          
+    MOV AL, 15  
+
+    ; Desenha o interior da caixa por cima, deixando apenas a borda aparente (Retângulo Preto)        
+    CALL desenha_retangulo
+    MOV CX, 225
+    MOV DX, 185
+    MOV SI, 190
+    MOV DI, 50
+    MOV AL, 0           
+    CALL desenha_retangulo
+
+    ; Posiciona o cursor de texto do BIOS (Função 02h)
+    MOV AH, 02h
+    MOV BH, 0           
+    MOV DH, 13          
+    MOV DL, 36          
+    INT 10h
+
+    ; Loop para imprimir caractere por caractere a string 'msg_reiniciar'
+    MOV BX, msg_reiniciar
+print_loop:
+    MOV AL, [BX]        
+    CMP AL, 0     ;Verifica se chegou ao fim da string (caractere nulo)      
+    JE fim_menu_saida   
+    
+    MOV AH, 0Eh    ;Função 0Eh do BIOS (imprime caractere na tela)     
+    PUSH BX             
+    MOV BH, 0
+    MOV BL, 14     ;Cor do texto: 14 (Amarelo)     
+    INT 10h
+    POP BX              
+    
+    INC BX         ;Avança para o próximo caractere     
+    JMP print_loop
+fim_menu_saida:
+    RET
+
+
+reinicia_jogo:
+    ; Variáveis de round e vitórias
+    MOV byte[current_round], 1
+    MOV byte[p1_wins], 0
+    MOV byte[p2_wins], 0
+
+    ; Zera os estados dos personagens (Isso corrige o soco infinito!)
+    MOV byte[p1_estado], 0
+    MOV byte[p1_estado_antigo], 0
+    MOV byte[p2_estado], 0
+    MOV byte[p2_estado_antigo], 0
+
+    ; Retorna os personagens para as posições iniciais
+    MOV word[p1_x], 100
+    MOV word[p1_x_antigo], 100
+    MOV word[p1_y], 80
+    MOV word[p1_y_antigo], 80
+
+    MOV word[p2_x], 500
+    MOV word[p2_x_antigo], 500
+    MOV word[p2_y], 80
+    MOV word[p2_y_antigo], 80
+
+    ; Restaura a vida de ambos
+    MOV byte[p1_hp], 10
+    MOV byte[p2_hp], 10
+
+    ; Volta para a tela inicial
+    JMP ..start
 
 segment stack stack
     resb 256
